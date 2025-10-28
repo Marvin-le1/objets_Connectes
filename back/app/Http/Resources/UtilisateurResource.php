@@ -14,6 +14,18 @@ class UtilisateurResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        return parent::toArray($request);
+        return [
+            'id' => $this->id,
+            'nom' => $this->nom,
+            'prenom' => $this->prenom,
+            'nom_complet' => $this->prenom . ' ' . $this->nom,
+            'service' => $this->service,
+            'badge' => [
+                'id' => $this->badge->id ?? null,
+                'numero' => $this->badge->numero ?? null,
+            ],
+            'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
+            'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
+        ];
     }
 }
