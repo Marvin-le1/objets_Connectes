@@ -174,11 +174,14 @@ class BadgeageController extends Controller
 
         $totalMinutes = 0;
 
-        // calcul entre entrées et sorties
-        for ($i = 0; $i < $badgeages->count(); $i += 2) {
-            if (isset($badgeages[$i + 1])) {
-                $entree = Carbon::parse($badgeages[$i]->heure);
-                $sortie = Carbon::parse($badgeages[$i + 1]->heure);
+        // calcul entre entrées et sorties en vérifiant l'alternance
+        for ($i = 0; $i < $badgeages->count() - 1; $i++) {
+            $badgeageActuel = $badgeages[$i];
+            $badgeageSuivant = $badgeages[$i + 1];
+            
+            if ($badgeageActuel->entree_sortie == true && $badgeageSuivant->entree_sortie == false) {
+                $entree = Carbon::parse($badgeageActuel->heure);
+                $sortie = Carbon::parse($badgeageSuivant->heure);
                 $totalMinutes += $entree->diffInMinutes($sortie);
             }
         }
