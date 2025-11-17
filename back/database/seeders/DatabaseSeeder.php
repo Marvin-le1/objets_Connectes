@@ -17,9 +17,9 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             BadgeSeeder::class,
+            HoraireSeeder::class,
             UtilisateurSeeder::class,
             HeureSeeder::class,
-            HoraireSeeder::class,
         ]);
     }
 }

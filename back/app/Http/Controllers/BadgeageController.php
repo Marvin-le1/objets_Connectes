@@ -41,14 +41,14 @@ class BadgeageController extends Controller
             }
 
             // recup l'horaire de l'user
-            $horaire = Horaire::where('utilisateur_id', $utilisateur->id)->first();
+            $horaire = $utilisateur->horaire;
             
             if (!$horaire) {
                 return ApiResponse::error('Aucun horaire défini pour cet utilisateur', null, 404);
             }
 
             // heure actuelle
-            $now = Carbon::now();
+            $now = Carbon::now('Europe/Paris');
 
             // recup le dernier badgeage du jour
             $dernierBadgeage = Heure::where('utilisateur_id', $utilisateur->id)
@@ -115,11 +115,11 @@ class BadgeageController extends Controller
      */
     private function determinerTypeBadgeage(Carbon $now, Horaire $horaire, $dernierBadgeage)
     {
-        // convert horaires en Carbon pour ojd
-        $entreeMatin = Carbon::parse($horaire->entree_matin)->setDate($now->year, $now->month, $now->day);
-        $sortieMidi = Carbon::parse($horaire->sortie_midi)->setDate($now->year, $now->month, $now->day);
-        $entreeMidi = Carbon::parse($horaire->entree_midi)->setDate($now->year, $now->month, $now->day);
-        $sortieSoir = Carbon::parse($horaire->sortie_soir)->setDate($now->year, $now->month, $now->day);
+        // convert horaires en Carbon pour ojd 
+        $entreeMatin = Carbon::parse($horaire->entree_matin)->setTimezone('Europe/Paris')->setDate($now->year, $now->month, $now->day);
+        $sortieMidi  = Carbon::parse($horaire->sortie_midi)->setTimezone('Europe/Paris')->setDate($now->year, $now->month, $now->day);
+        $entreeMidi  = Carbon::parse($horaire->entree_midi)->setTimezone('Europe/Paris')->setDate($now->year, $now->month, $now->day);
+        $sortieSoir  = Carbon::parse($horaire->sortie_soir)->setTimezone('Europe/Paris')->setDate($now->year, $now->month, $now->day);
 
         // marges
         $margeAvant = 30; // 30 min avant
@@ -128,22 +128,30 @@ class BadgeageController extends Controller
 
         // détermine si c'est une entrée ou une sortie en fonction des horaires de l'utilisateur
         // 30min avant à 30min après l'horaire d'entrée matin
-        if ($now->between($entreeMatin->copy()->subMinutes($margeAvant), $entreeMatin->copy()->addMinutes($margeApres))) {
+        $debutEntreeMatin = $entreeMatin->copy()->subMinutes($margeAvant);
+        $finEntreeMatin = $entreeMatin->copy()->addMinutes($margeApres);
+        if ($now->between($debutEntreeMatin, $finEntreeMatin, true)) {
             return true;
         }
         
         // 30min avant à 30min après l'horaire de sortie midi
-        if ($now->between($sortieMidi->copy()->subMinutes($margeAvant), $sortieMidi->copy()->addMinutes($margeApres))) {
+        $debutSortieMidi = $sortieMidi->copy()->subMinutes($margeAvant);
+        $finSortieMidi = $sortieMidi->copy()->addMinutes($margeApres);
+        if ($now->between($debutSortieMidi, $finSortieMidi, true)) {
             return false;
         }
         
         // 30min avant à 30min après l'horaire d'entrée midi
-        if ($now->between($entreeMidi->copy()->subMinutes($margeAvant), $entreeMidi->copy()->addMinutes($margeApres))) {
+        $debutEntreeMidi = $entreeMidi->copy()->subMinutes($margeAvant);
+        $finEntreeMidi = $entreeMidi->copy()->addMinutes($margeApres);
+        if ($now->between($debutEntreeMidi, $finEntreeMidi, true)) {
             return true;
         }
         
         // 30min avant à 4h après l'horaire de sortie soir (heures sup)
-        if ($now->between($sortieSoir->copy()->subMinutes($margeAvant), $sortieSoir->copy()->addMinutes($margeHeuresSup))) {
+        $debutSortieSoir = $sortieSoir->copy()->subMinutes($margeAvant);
+        $finSortieSoir = $sortieSoir->copy()->addMinutes($margeHeuresSup);
+        if ($now->between($debutSortieSoir, $finSortieSoir, true)) {
             return false;
         }
 
@@ -314,7 +322,7 @@ class BadgeageController extends Controller
             }
 
             $dernierBadgeage = Heure::where('utilisateur_id', $utilisateurId)
-                ->whereDate('heure', Carbon::today())
+                ->whereDate('heure', Carbon::today('Europe/Paris'))
                 ->orderBy('heure', 'desc')
                 ->first();
 

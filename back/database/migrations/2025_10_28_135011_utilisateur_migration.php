@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('prenom');
             $table->string('service');
             $table->foreignId('badge_id')->constrained('badges')->onDelete('cascade');
+            $table->unsignedBigInteger('horaire_id')->nullable();
             $table->timestamps();
         });
     }

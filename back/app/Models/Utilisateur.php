@@ -26,6 +26,7 @@ class Utilisateur extends Model
         'prenom',
         'service',
         'badge_id',
+        'horaire_id',
     ];
 
     /**
@@ -35,6 +36,7 @@ class Utilisateur extends Model
      */
     protected $casts = [
         'badge_id' => 'integer',
+        'horaire_id' => 'integer',
     ];
 
     /**
@@ -54,10 +56,10 @@ class Utilisateur extends Model
     }
 
     /**
-     * Get the horaires for the utilisateur.
+     * Get the horaire that belongs to the utilisateur.
      */
-    public function horaires()
+    public function horaire()
     {
-        return $this->hasMany(Horaire::class, 'utilisateur_id');
+        return $this->belongsTo(Horaire::class, 'horaire_id');
     }
 }

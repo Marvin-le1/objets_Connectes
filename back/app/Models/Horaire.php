@@ -26,7 +26,6 @@ class Horaire extends Model
         'sortie_midi',
         'entree_midi',
         'sortie_soir',
-        'utilisateur_id',
     ];
 
     /**
@@ -42,10 +41,10 @@ class Horaire extends Model
     ];
 
     /**
-     * Get the utilisateur that owns the horaire.
+     * Get the utilisateurs that have this horaire.
      */
-    public function utilisateur()
+    public function utilisateurs()
     {
-        return $this->belongsTo(Utilisateur::class, 'utilisateur_id');
+        return $this->hasMany(Utilisateur::class, 'horaire_id');
     }
 }

@@ -17,7 +17,6 @@ return new class extends Migration
             $table->timestamp('sortie_midi');
             $table->timestamp('entree_midi');
             $table->timestamp('sortie_soir');
-            $table->foreignId('utilisateur_id')->constrained('utilisateurs')->onDelete('cascade');
             $table->timestamps();
         });
     }
