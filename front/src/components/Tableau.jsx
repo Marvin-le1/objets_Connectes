@@ -5,6 +5,12 @@ function Tableau({ colonnes, lignes }) {
         padding: '10px 15px',
         fontSize: '16px'
     };
+
+    // Permet de lire "badge.numero" => ligne.badge.numero
+    const getValue = (obj, path) => {
+        return path.split('.').reduce((acc, key) => acc?.[key], obj);
+    };
+
     return (
         <table border="1">
             <thead>
@@ -18,7 +24,9 @@ function Tableau({ colonnes, lignes }) {
                 {lignes.map((ligne, index) => (
                     <tr key={index}>
                         {colonnes.map((colonne, colIndex) => (
-                            <td key={colIndex} style={cellStyle}>{ligne[colonne]}</td>
+                            <td key={colIndex} style={cellStyle}>
+                                {getValue(ligne, colonne)}
+                            </td>
                         ))}
                     </tr>
                 ))}

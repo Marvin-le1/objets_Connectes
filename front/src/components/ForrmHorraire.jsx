@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
+import { useApi } from '../services/useApi';
 
 function FormHorraire({ onSubmit }) {
+    const today = new Date().toISOString().slice(0, 10) + " 00:00:00";
     const [formData, setFormData] = useState({
-        nom: '',
-        prenom: '',
-        choix: '',
+        utilisateur_id: '',
+        entree_sortie: '1', // 1 = entrée, 0 = sortie
+        heure: today,
     });
+
+    const { loading, error, callApi } = useApi();
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -15,54 +19,79 @@ function FormHorraire({ onSubmit }) {
         });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        const currentTime = new Date().toLocaleTimeString();
-        onSubmit({ ...formData, heureRemplissage: currentTime });
-        setFormData({ nom: '', prenom: '', choix: '' });
+
+        try {
+            const body = {
+                utilisateur_id: formData.utilisateur_id,
+                entree_sortie: parseInt(formData.entree_sortie, 10),
+                heure: formData.heure,
+            };
+
+            const res = await callApi('/heures', {
+                method: 'POST',
+                body,
+            });
+
+            if (onSubmit) {
+                // onSubmit with data from API if available, otherwise the body we sent
+                onSubmit(res?.data || body);
+            }
+
+            setFormData({
+                utilisateur_id: '',
+                entree_sortie: '1',
+                heure: today,
+            });
+            window.location.reload();
+        } catch (err) {
+            console.error('Erreur lors de la création de l\'heure :', err);
+        }
     };
 
     return (
         <form onSubmit={handleSubmit}>
             <label>
-                Nom:
+                ID utilisateur :
                 <input
-                    type="text"
-                    name="nom"
-                    value={formData.nom}
+                    type="number"
+                    name="utilisateur_id"
+                    value={formData.utilisateur_id}
                     onChange={handleChange}
                     required
                 />
             </label>
             <br />
             <label>
-                Prénom:
-                <input
-                    type="text"
-                    name="prenom"
-                    value={formData.prenom}
-                    onChange={handleChange}
-                    required
-                />
-            </label>
-            <br />
-            <label>
-                Choix:
+                Type :
                 <select
-                    name="choix"
-                    value={formData.choix}
+                    name="entree_sortie"
+                    value={formData.entree_sortie}
                     onChange={handleChange}
                     required
                 >
-                    <option value="">--Sélectionnez--</option>
-                    <option value="Entrée matin">Entrée matin</option>
-                    <option value="Sortie midi">Sortie midi</option>
-                    <option value="Entrée midi">Entrée midi</option>
-                    <option value="Sortie soir">Sortie soir</option>
+                    <option value="1">Entrée</option>
+                    <option value="0">Sortie</option>
                 </select>
             </label>
             <br />
-            <button type="submit">Soumettre</button>
+            <label>
+                Heure (texte, ex: 2025-11-16 07:00:00) :
+                <input
+                    type="text"
+                    name="heure"
+                    value={formData.heure}
+                    onChange={handleChange}
+                    placeholder="YYYY-MM-DD HH:MM:SS"
+                    required
+                />
+            </label>
+            <br />
+            <button type="submit" disabled={loading}>
+                {loading ? 'Envoi...' : 'Soumettre'}
+            </button>
+            {error && <p>Erreur lors de l'envoi</p>}
         </form>
     );
 }
