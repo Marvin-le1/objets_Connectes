@@ -1,43 +1,65 @@
 import pymysql
+import datetime
 
+# Demander les infos
+serial_no = input("RFID card serial number ? (hex) ")
+user_id = input("ID de l'utilisateur (utilisateurs.id) ? ")
 
-serial_no = input("RIFD card serial number ?")
-user_id = input("user name?")
-
-# put serial_no uppercase just in case
+# mettre en majuscules
 serial_no = serial_no.upper()
 
-# open an sql session
+# convertir l'UID hex en entier pour coller avec badges.numero
+try:
+    numero_badge = int(serial_no, 16)
+except ValueError:
+    print(f"UID invalide : {serial_no}")
+    exit(1)
 
-sql_con = pymysql.connect(host='localhost', user='rfidreader',
-                          passwd='password', db='rfidcardsdb')
-sqlcursor = sql_con.cursor()
+# ouvrir une session SQL vers la BDD Docker
+try:
+    sql_con = pymysql.connect(
+        host="127.0.0.1",
+        user="rfid",
+        passwd="rfid",
+        db="rfid",
+        port=3307,
+    )
+    sqlcursor = sql_con.cursor()
+except pymysql.err.OperationalError as e:
+    print("Unable to connect to DataBase:", e)
+    exit(1)
 
-
-# first thing is to check if the card exist
-
-sql_request = 'SELECT card_id,serial_no,user_id,valid' + \
-              ' FROM cards  WHERE serial_no = "' + serial_no + '"'
-
-count = sqlcursor.execute(sql_request)
+# 1) vérifier si le badge existe déjà
+sql_request = "SELECT id, numero FROM badges WHERE numero = %s"
+count = sqlcursor.execute(sql_request, (numero_badge,))
 
 if count > 0:
-    print("Error! RFID card {} already in database".format(serial_no))
-    T = sqlcursor.fetchone()
-    print(T)
+    print(f"Error! RFID card {serial_no} (numero={numero_badge}) already in database")
+    print(sqlcursor.fetchone())
 else:
-    sql_insert = 'INSERT INTO cards (serial_no,user_id,valid) ' + \
-                 'values("{}","{}","1")'.format(serial_no, user_id)
-    count = sqlcursor.execute(sql_insert)
-    if count > 0:
-        sql_con.commit()
-        # let's check it  just in case
-        count = sqlcursor.execute(sql_request)
-        if count > 0:
-            print("RFID card {} inserted to database".format(serial_no))
-            T = sqlcursor.fetchone()
-            print(T)
-    if count == 0:
-        print("Error! RFID card {} not inserted to database! ".format(
-               serial_no))
+    # 2) insérer dans badges
+    now = datetime.datetime.now()
+    sql_insert_badge = """
+        INSERT INTO badges (numero, created_at, updated_at)
+        VALUES (%s, %s, %s)
+    """
+    sqlcursor.execute(sql_insert_badge, (numero_badge, now, now))
+    badge_id = sql_con.insert_id()
 
+    # 3) lier le badge à l'utilisateur
+    sql_update_user = """
+        UPDATE utilisateurs
+        SET badge_id = %s, updated_at = %s
+        WHERE id = %s
+    """
+    sqlcursor.execute(sql_update_user, (badge_id, now, user_id))
+
+    # 4) commit + vérif
+    sql_con.commit()
+
+    if sqlcursor.rowcount > 0:
+        print(f"RFID card {serial_no} (numero={numero_badge}) linked to user {user_id}")
+    else:
+        print(f"Badge créé (id={badge_id}) mais aucun utilisateur mis à jour (id={user_id} inexistant ?)")
+
+sql_con.close()

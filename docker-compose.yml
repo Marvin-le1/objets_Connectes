@@ -39,13 +39,5 @@ services:
       # à adapter selon ton front (Vite/CRA)
       - VITE_API_URL=http://back:8000
 
-  rfid:
-    build: ./Script-Python
-    container_name: rfid_worker
-    restart: always
-    depends_on:
-      - back
-    privileged: true
-
 volumes:
   db_data:
