@@ -45,7 +45,6 @@ services:
     restart: always
     depends_on:
       - back
-    # souvent nécessaire pour accéder au lecteur sur le Pi
     privileged: true
 
 volumes:
