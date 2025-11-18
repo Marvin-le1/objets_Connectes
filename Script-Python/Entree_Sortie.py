@@ -52,10 +52,11 @@ readerName = "reader 1"
 readerID = "0"
 readerZone = 0
 # my sql info
-mysqlHost = "localhost"
-mysqlDatabase = "rfidcardsdb"
-mysqlUserName = "rfidreader"
-mysqlPassword = "password"
+# my sql info (Docker / Laravel)
+mysqlHost = "db"          # nom du service MariaDB dans docker-compose
+mysqlDatabase = "rfid"    # DB définie dans docker-compose
+mysqlUserName = "rfid"    # user défini dans docker-compose
+mysqlPassword = "rfid"    # password défini dans docker-compose
 
 # relay definition
 
@@ -208,28 +209,7 @@ def readCard():
 
 
 def validateReader(sqlcursor):
-    global readerName
-    global readerID
-    global readerZone
-
-    sql_request = 'SELECT  reader_id,enable,zones_access' + \
-                  ' FROM reader_tbl WHERE reader_name = "' + readerName + '"'
-
-    print("SQL REQUEST -> " + sql_request)
-    count = sqlcursor.execute(sql_request)
-
-    if count != 1:
-        print("Card reader not Enabled!")
-        return False
-
-    sql_data = sqlcursor.fetchone()
-
-    # check if it is enabled
-    if sql_data[1] == 0:
-        return false
-
-    readerID = sql_data[0]
-    readerZone = sql_data[2]
+    # plus de gestion des lecteurs en base, on accepte toujours
     return True
 
 
@@ -241,67 +221,51 @@ def validateReader(sqlcursor):
 # return true if valid otherwise false
 
 def validateCard(sqlcursor, serial_id):
-    global cardId
-    global userID
-    global serial_no
-    global readerID
+    """
+    Vérifie si le badge existe, trouve l'utilisateur lié,
+    et enregistre une ligne dans la table 'heures'.
+    """
 
-    # first thing to do is to validate if the reader
-    # is allowed to read
-    reader = validateReader(sqlcursor)
-
-    # request if the card is valie
-    sql_request = 'SELECT card_id,serial_no,user_id,valid' + \
-                  ' FROM cards  WHERE serial_no = "' + serial_id + '"'
-    count = sqlcursor.execute(sql_request)
-
-    # how many record we have
-    if count == 0:
-        print("Card ?:{} from unknown  Refused!".format(serial_id))
-        sql_insert = "INSERT INTO log_tbl " + \
-                     "(serial_no,card_id,date_stamp,reader,action)" + \
-                     "values('{}','{}','{}','{}','{}')".format(
-                      serial_id, 0,
-                      datetime.datetime.now(),
-                      readerID,
-                      ACTION_BAD_CARD)
-        print(sql_insert)
-        sys.stdout.flush()
-        sqlcursor.execute(sql_insert)
+    # on attend un numéro de badge en base 16 -> int
+    try:
+        badge_num = int(serial_id, 16)
+    except ValueError:
+        print(f"UID invalide : {serial_id}")
         return False
 
-    # ok we have a record
-    card = sqlcursor.fetchone()
+    # 1) vérifier que le lecteur est valide (même si on renvoie toujours True pour l'instant)
+    if not validateReader(sqlcursor):
+        print("Lecteur non autorisé")
+        return False
 
-    # is the card valid
-    if card[3] > 0:
-        print("Card {}:{} from user {} Accepted!".format(
-               card[0], card[1], card[2]))
-        sql_insert = "INSERT INTO `log_tbl` (" + \
-                     "`serial_no`,`card_id`,`date_stamp`,`reader`,`action`" + \
-                     ") VALUES (\'{}\',\'{}\',\'{}\',\'{}\',\'{}\')".format(
-                      card[1], card[0],
-                      datetime.datetime.now(),
-                      readerID,
-                      ACTION_ACCEPTED,)
-        print(sql_insert)
-        sys.stdout.flush()
-        sqlcursor.execute(sql_insert)
-        return True
-    else:
-        print("Card {}:{} from user {} Invalid".format(
-              card[0], card[1], card[2]))
-        sql_insert = "INSERT INTO log_tbl (" + \
-                     "serial_no,card_id,date_stamp,reader,action) " + \
-                     "values('{}','{}','{}','{}','{}')".format(
-                      card[1], card[0],
-                      datetime.datetime.now(),
-                      readerID,
-                      ACTION_INVALID,)
-        print(sql_insert)
-        sys.stdout.flush()
-        sqlcursor.execute(sql_insert)
-    return False
+    # 2) récupérer l'utilisateur lié au badge
+    sql_select_user = """
+        SELECT u.id
+        FROM utilisateurs u
+        JOIN badges b ON b.id = u.badge_id
+        WHERE b.numero = %s
+        LIMIT 1
+    """
+    count = sqlcursor.execute(sql_select_user, (badge_num,))
+
+    if count == 0:
+        print(f"Badge inconnu : {serial_id} (numero={badge_num})")
+        return False
+
+    user_id = sqlcursor.fetchone()[0]
+
+    # 3) insérer dans 'heures'
+    # entree_sortie = True -> entrée (pour l'instant on ne gère pas la sortie)
+    now = datetime.datetime.now()
+
+    sql_insert_heure = """
+        INSERT INTO heures (entree_sortie, heure, utilisateur_id, created_at, updated_at)
+        VALUES (%s, %s, %s, %s, %s)
+    """
+    sqlcursor.execute(sql_insert_heure, (True, now, user_id, now, now))
+
+    print(f"Heure enregistrée pour utilisateur {user_id} à {now}")
+    return True
 
 while continue_reading:
     card_read = readCard()
