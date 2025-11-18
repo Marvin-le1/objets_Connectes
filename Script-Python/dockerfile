@@ -1,0 +1,16 @@
+FROM python:3.11-slim
+
+RUN apt-get update && apt-get install -y \
+    python3-dev build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# si tu as un requirements.txt
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt || true
+
+COPY . .
+
+# change NOM_DU_SCRIPT.py par le tien (ex: main.py, rfid.py…)
+CMD ["python", "Entree_Sortie.py"]
