@@ -6,11 +6,9 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# si tu as un requirements.txt
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt || true
 
 COPY . .
 
-# change NOM_DU_SCRIPT.py par le tien (ex: main.py, rfid.py…)
 CMD ["python", "Entree_Sortie.py"]
