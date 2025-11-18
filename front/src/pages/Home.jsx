@@ -1,24 +1,34 @@
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Tableau from '../components/Tableau';
 import FormHorraire from '../components/ForrmHorraire';
+import { useApi } from '../services/useApi';
+import Status from '../components/Status';
 
 function Home() {
     const [lignes, setLignes] = useState([]);
+    const { data, loading, error, callApi } = useApi();
 
-    const handleFormSubmit = (formData) => {
-        setLignes([...lignes, formData]);
-    };
+    useEffect(() => {
+        callApi("/utilisateurs/")
+          .then((res) => {
+            setLignes(res?.data ?? []);
+          })
+          .catch((err) => {
+            console.error(err);
+          });
+      }, [callApi]);
 
     return (
         <div>
             <Tableau
-                colonnes={['nom', 'prenom', 'choix', 'heureRemplissage']}
-                lignes={lignes}
+            colonnes={['nom', 'prenom', 'service', 'badge.numero']}
+            lignes={lignes}
             />
 
-            <FormHorraire onSubmit={handleFormSubmit} />
-            {console.log(lignes)}
+            <FormHorraire />
+
+            <Status />
         </div>
     );
 }
