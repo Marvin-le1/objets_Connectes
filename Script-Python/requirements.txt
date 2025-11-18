@@ -1,3 +1,4 @@
 RPi.GPIO==0.6.3
 -e git+https://github.com/lthiery/SPI-Py.git#egg=spi-pi
+RPi.GPIO
 pymysql
