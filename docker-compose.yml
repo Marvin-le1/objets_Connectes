@@ -1,0 +1,52 @@
+version: "3.9"
+
+services:
+  db:
+    image: mariadb:11
+    container_name: rfid_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: rfid
+      MYSQL_USER: rfid
+      MYSQL_PASSWORD: rfid
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+  back:
+    build: ./back
+    container_name: rfid_back
+    restart: always
+    depends_on:
+      - db
+    env_file:
+      - ./back/.env.docker
+    ports:
+      - "8000:8000"
+    command: ["/entrypoint.sh"]
+
+  front:
+    build: ./front
+    container_name: rfid_front
+    restart: always
+    depends_on:
+      - back
+    ports:
+      - "3000:3000"
+    environment:
+      # à adapter selon ton front (Vite/CRA)
+      - VITE_API_URL=http://back:8000
+
+  rfid:
+    build: ./MFRC522-python
+    container_name: rfid_worker
+    restart: always
+    depends_on:
+      - back
+    # souvent nécessaire pour accéder au lecteur sur le Pi
+    privileged: true
+
+volumes:
+  db_data:
