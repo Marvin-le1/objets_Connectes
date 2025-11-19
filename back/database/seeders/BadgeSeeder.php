@@ -14,9 +14,9 @@ class BadgeSeeder extends Seeder
     public function run(): void
     {
         $badges = [
-            ['numero' => 8271219C],
-            ['numero' => A27F6C39],
-            ['numero' => B9C37359],
+            ['numero' => 2188779548],
+            ['numero' => 2721857337],
+            ['numero' => 3116338777],
         ];
 
         foreach ($badges as $badge) {
