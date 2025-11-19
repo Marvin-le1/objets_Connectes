@@ -6,7 +6,6 @@ function Tableau({ colonnes, lignes }) {
         fontSize: '16px'
     };
 
-    // Permet de lire "badge.numero" => ligne.badge.numero
     const getValue = (obj, path) => {
         return path.split('.').reduce((acc, key) => acc?.[key], obj);
     };
