@@ -40,6 +40,38 @@ Le service RH peut ensuite extraire un rapport de présence pour calculer les te
 
 ⸻
 
+📦 Initialisation du projet
+
+1. Clonez le projet depuis GitHub :
+   ```bash
+   git clone https://github.com/votre-repo/objets_Connectes.git
+   ```
+2. Accédez au dossier du projet :
+   ```bash
+   cd objets_Connectes
+   ```
+3. Assurez-vous que le script de démarrage possède les permissions nécessaires :
+   ```bash
+   chmod +x start.sh
+   ```
+4. Si vous utilisez le Raspberry Pi, installez les dépendances Python du lecteur RFID :
+   ```bash
+   pip3 install -r Script-Python/requirements.txt
+   ```
+4bis. Installez la librairie GPIO mise à jour (nécessaire sur Raspberry Pi) :
+   ```bash
+   sudo apt-get install -y python3-rpi-lgpio
+   ```
+5. Vérifiez que Docker et Docker Compose sont installés et fonctionnels :
+   ```bash
+   docker --version
+   docker compose version
+   ```
+
+Une fois ces étapes terminées, vous pouvez lancer le projet en suivant la section ci‑dessous.
+
+⸻
+
 🚀 Lancement du projet
 
 1. Assurez-vous d’être à la racine du projet (là où se trouve `docker-compose.yml`).
