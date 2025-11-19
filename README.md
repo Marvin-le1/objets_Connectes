@@ -37,3 +37,19 @@ Le service RH peut ensuite extraire un rapport de présence pour calculer les te
 ⸻
 
 📈 Livrables et étapes 1. Mise en place du module RFID et lecture des badges 2. Système de badgeage manuel 3. Intégration du badgeage RFID 4. Calcul et affichage des rapports de présence 5. Présentation et démonstration finale du projet
+
+⸻
+
+🚀 Lancement du projet
+
+1. Assurez-vous d’être à la racine du projet (là où se trouve `docker-compose.yml`).
+2. Si le script n’est pas exécutable, donnez-lui les permissions :
+   ```bash
+   chmod +x start.sh
+   ```
+3. Lancez ensuite le projet complet via Docker :
+   ```bash
+   ./start.sh
+   ```
+4. Une fois les services démarrés, accédez à l’interface React :
+   http://localhost:3000
