@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('badges', function (Blueprint $table) {
             $table->id();
-            $table->integer('numero')->unique();
+            $table->unsignedBigInteger('numero')->unique();
             $table->timestamps();
         });
     }

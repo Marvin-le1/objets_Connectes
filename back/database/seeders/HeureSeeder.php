@@ -48,28 +48,6 @@ class HeureSeeder extends Seeder
                 'heure' => Carbon::now()->subDays(3)->setTime(17, 30, 0),
                 'utilisateur_id' => 3,
             ],
-            // Utilisateur 4 - Sophie Lefebvre
-            [
-                'entree_sortie' => true,
-                'heure' => Carbon::now()->subDays(2)->setTime(8, 45, 0),
-                'utilisateur_id' => 4,
-            ],
-            [
-                'entree_sortie' => false,
-                'heure' => Carbon::now()->subDays(2)->setTime(18, 0, 0),
-                'utilisateur_id' => 4,
-            ],
-            // Utilisateur 5 - Luc Moreau
-            [
-                'entree_sortie' => true,
-                'heure' => Carbon::now()->subDays(1)->setTime(7, 30, 0),
-                'utilisateur_id' => 5,
-            ],
-            [
-                'entree_sortie' => false,
-                'heure' => Carbon::now()->subDays(1)->setTime(16, 30, 0),
-                'utilisateur_id' => 5,
-            ],
         ];
 
         foreach ($heures as $heure) {
