@@ -44,7 +44,7 @@ Le service RH peut ensuite extraire un rapport de présence pour calculer les te
 
 1. Clonez le projet depuis GitHub :
    ```bash
-   git clone https://github.com/votre-repo/objets_Connectes.git
+   git clone https://github.com/Marvin-le1/objets_Connectes.git
    ```
 2. Accédez au dossier du projet :
    ```bash
