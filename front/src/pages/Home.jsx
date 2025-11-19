@@ -4,6 +4,8 @@ import Tableau from '../components/Tableau';
 import FormHorraire from '../components/ForrmHorraire';
 import { useApi } from '../services/useApi';
 import Status from '../components/Status';
+import Rapport from '../components/Rapport';
+import Historique from '../components/Historique';
 
 function Home() {
     const [lignes, setLignes] = useState([]);
@@ -29,6 +31,10 @@ function Home() {
             <FormHorraire />
 
             <Status />
+
+            <Rapport />
+
+            <Historique />
         </div>
     );
 }
