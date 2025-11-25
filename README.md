@@ -20,7 +20,7 @@ Le service RH peut ensuite extraire un rapport de présence pour calculer les te
 ⸻
 
 🧰 Matériel utilisé
-• Carte Arduino Uno® compatible
+• Raspberry Pi
 • Module RFID TAG GT138 (RC522)
 • Badges RFID Mifare 13,56 MHz
 • Câbles de connexion M/F
@@ -28,10 +28,24 @@ Le service RH peut ensuite extraire un rapport de présence pour calculer les te
 
 ⸻
 
+🔌 Branchement du module RFID (RC522)
+
+Correspondance des pins :
+
+• Pin 1  → VCC  
+• Pin 6  → GND  
+• Pin 19 → MOSI  
+• Pin 21 → MISO  
+• Pin 22 → RST  
+• Pin 23 → SCK  
+• Pin 24 → NOS  
+
+Ces branchements permettent la communication SPI entre le module RFID et le Raspberry Pi.
+
 💻 Technologies
-• Arduino IDE
+• Environnement Raspberry Pi OS
 • Bibliothèque MFRC522 (communication SPI)
-• Langage : C++ (Arduino)
+• Langage : Python
 • Base de données (modèle conceptuel MCD défini pour la gestion des temps)
 
 ⸻
