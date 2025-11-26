@@ -16,7 +16,7 @@ class HoraireController extends Controller
     public function index()
     {
         try {
-            $horaires = Horaire::with('utilisateur')->get();
+            $horaires = Horaire::with('utilisateurs')->get();
             return ApiResponse::success('Liste des horaires récupérée avec succès', HoraireResource::collection($horaires));
         } catch (\Exception $e) {
             return ApiResponse::error('Erreur lors de la récupération des horaires', null, 500);
@@ -30,7 +30,7 @@ class HoraireController extends Controller
     {
         try {
             $horaire = Horaire::create($request->validated());
-            $horaire->load('utilisateur');
+            $horaire->load('utilisateurs');
 
             return ApiResponse::created('Horaire créé avec succès', new HoraireResource($horaire));
         } catch (\Exception $e) {
@@ -44,7 +44,7 @@ class HoraireController extends Controller
     public function show(string $id)
     {
         try {
-            $horaire = Horaire::with('utilisateur')->find($id);
+            $horaire = Horaire::with('utilisateurs')->find($id);
 
             if (!$horaire) {
                 return ApiResponse::notFound('Horaire non trouvé');
@@ -69,7 +69,7 @@ class HoraireController extends Controller
             }
 
             $horaire->update($request->validated());
-            $horaire->load('utilisateur');
+            $horaire->load('utilisateurs');
 
             return ApiResponse::success('Horaire mis à jour avec succès', new HoraireResource($horaire));
         } catch (\Exception $e) {
