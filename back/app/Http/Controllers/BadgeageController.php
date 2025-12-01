@@ -184,71 +184,61 @@ class BadgeageController extends Controller
         }
 
         // horaires théoriques pour compléter les badgeages oubliés
-        $entreeMatin = Carbon::parse($horaire->entree_matin)->setTimezone('Europe/Paris')->setDate($date->year, $date->month, $date->day);
-        $sortieMidi  = Carbon::parse($horaire->sortie_midi )->setTimezone('Europe/Paris')->setDate($date->year, $date->month, $date->day);
-        $entreeMidi  = Carbon::parse($horaire->entree_midi )->setTimezone('Europe/Paris')->setDate($date->year, $date->month, $date->day);
-        $sortieSoir  = Carbon::parse($horaire->sortie_soir )->setTimezone('Europe/Paris')->setDate($date->year, $date->month, $date->day);
+        $entreeMatin = Carbon::parse($horaire->entree_matin, 'Europe/Paris')->setDate($date->year, $date->month, $date->day);
+        $sortieMidi  = Carbon::parse($horaire->sortie_midi , 'Europe/Paris')->setDate($date->year, $date->month, $date->day);
+        $entreeMidi  = Carbon::parse($horaire->entree_midi , 'Europe/Paris')->setDate($date->year, $date->month, $date->day);
+        $sortieSoir  = Carbon::parse($horaire->sortie_soir , 'Europe/Paris')->setDate($date->year, $date->month, $date->day);
+        $nowParis    = Carbon::now('Europe/Paris');
 
         $totalMinutes = 0;
-        $i = 0;
-        $traites = []; // ta pour marquer les indices déjà traités
+        $openEntry = null;
+        $sortieMidiPlus30 = $sortieMidi->copy()->addMinutes(30);
 
-        while ($i < $badgeages->count()) {
-            // déjà traité -> suivant
-            if (in_array($i, $traites)) {
-                $i++;
-                continue;
-            }
-
-            $badgeageActuel = $badgeages[$i];
-            
-            // Cas 1 : entrée
-            if ($badgeageActuel->entree_sortie == true) {
-                $heureEntree = Carbon::parse($badgeageActuel->heure);
-                
-                // search prochaine sortie
-                $sortie = null;
-                $sortieIndex = null;
-                for ($j = $i + 1; $j < $badgeages->count(); $j++) {
-                    if ($badgeages[$j]->entree_sortie == false) {
-                        $sortie = $badgeages[$j];
-                        $sortieIndex = $j;
-                        break;
+        foreach ($badgeages as $record) {
+            $t = Carbon::parse($record->heure)->setTimezone('Europe/Paris');
+            if ($record->entree_sortie) {
+                if ($openEntry === null) {
+                    // on ouvre une période
+                    $openEntry = $t;
+                } else {
+                    // entrée alors qu'une période est déjà ouverte -> fermer la précédente à la borne théorique
+                    $finTheorique = $openEntry->lt($sortieMidi) ? $sortieMidi : $sortieSoir;
+                    if ($finTheorique->gt($openEntry)) {
+                        $totalMinutes += $openEntry->diffInMinutes($finTheorique);
+                    }
+                    // nouvelle période commence
+                    $openEntry = $t;
+                }
+            } else {
+                // sortie
+                if ($openEntry !== null) {
+                    // fermer la période ouverte
+                    if ($t->gt($openEntry)) {
+                        $totalMinutes += $openEntry->diffInMinutes($t);
+                    }
+                    $openEntry = null;
+                } else {
+                    // sortie sans entrée -> compléter avec entrée théorique (matin ou midi)
+                    $start = $t->lte($sortieMidiPlus30) ? $entreeMatin : $entreeMidi;
+                    if ($t->gt($start)) {
+                        $totalMinutes += $start->diffInMinutes($t);
                     }
                 }
-                
-                // pas de sortie trouvée -> horaire théorique
-                if (!$sortie) {
-                    if ($heureEntree->lt($sortieMidi)) {
-                        $heureSortie = $sortieMidi;
-                    } else {
-                        $heureSortie = $sortieSoir;
-                    }
-                } else {
-                    $heureSortie = Carbon::parse($sortie->heure);
-                    $traites[] = $sortieIndex; // marquer sortie comme traitée
-                }
-                
-                $totalMinutes += $heureEntree->diffInMinutes($heureSortie);
-                $traites[] = $i; // marquer entrée comme traitée
-                $i++;
             }
-            // Cas 2 : sortie sans entrée précédente
-            else {
-                $heureSortie = Carbon::parse($badgeageActuel->heure);
-                
-                // search quelle entrée théorique utiliser
-                if ($heureSortie->lte($sortieMidi->addMinutes(30))) {
-                    // sortie du matin -> utiliser entrée matin théorique
-                    $heureEntree = $entreeMatin;
-                } else {
-                    // sortie de l'après-midi -> utiliser entrée midi théorique
-                    $heureEntree = $entreeMidi;
-                }
-                
-                $totalMinutes += $heureEntree->diffInMinutes($heureSortie);
-                $traites[] = $i; // marquer sortie comme traitée
-                $i++;
+        }
+
+        // si une période est encore ouverte à la fin de la journée
+        if ($openEntry !== null) {
+            if ($date->isSameDay(Carbon::now('Europe/Paris'))) {
+                $finTheorique = $openEntry->lt($sortieMidi) ? $sortieMidi : $sortieSoir;
+                $borne = Carbon::now('Europe/Paris');
+                $heureSortie = $borne->lt($finTheorique) ? $borne : $finTheorique;
+            } else {
+                // jour passé -> borne théorique uniquement
+                $heureSortie = $openEntry->lt($sortieMidi) ? $sortieMidi : $sortieSoir;
+            }
+            if ($heureSortie->gt($openEntry)) {
+                $totalMinutes += $openEntry->diffInMinutes($heureSortie);
             }
         }
 
