@@ -38,7 +38,7 @@ Correspondance des pins :
 • Pin 21 → MISO  
 • Pin 22 → RST  
 • Pin 23 → SCK  
-• Pin 24 → NOS  
+• Pin 24 → NSS  
 
 Ces branchements permettent la communication SPI entre le module RFID et le Raspberry Pi.
 
