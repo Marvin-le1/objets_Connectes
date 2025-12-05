@@ -167,22 +167,78 @@ class BadgeageController extends Controller
      */
     private function calculerHeuresTravaillees($utilisateurId, Carbon $date)
     {
+        $utilisateur = Utilisateur::find($utilisateurId);
+        if (!$utilisateur || !$utilisateur->horaire) {
+            return '0h00';
+        }
+
+        $horaire = $utilisateur->horaire;
+        
         $badgeages = Heure::where('utilisateur_id', $utilisateurId)
             ->whereDate('heure', $date->toDateString())
             ->orderBy('heure', 'asc')
             ->get();
 
-        $totalMinutes = 0;
+        if ($badgeages->isEmpty()) {
+            return '0h00';
+        }
 
-        // calcul entre entrées et sorties en vérifiant l'alternance
-        for ($i = 0; $i < $badgeages->count() - 1; $i++) {
-            $badgeageActuel = $badgeages[$i];
-            $badgeageSuivant = $badgeages[$i + 1];
-            
-            if ($badgeageActuel->entree_sortie == true && $badgeageSuivant->entree_sortie == false) {
-                $entree = Carbon::parse($badgeageActuel->heure);
-                $sortie = Carbon::parse($badgeageSuivant->heure);
-                $totalMinutes += $entree->diffInMinutes($sortie);
+        // horaires théoriques pour compléter les badgeages oubliés
+        $entreeMatin = Carbon::parse($horaire->entree_matin, 'Europe/Paris')->setDate($date->year, $date->month, $date->day);
+        $sortieMidi  = Carbon::parse($horaire->sortie_midi , 'Europe/Paris')->setDate($date->year, $date->month, $date->day);
+        $entreeMidi  = Carbon::parse($horaire->entree_midi , 'Europe/Paris')->setDate($date->year, $date->month, $date->day);
+        $sortieSoir  = Carbon::parse($horaire->sortie_soir , 'Europe/Paris')->setDate($date->year, $date->month, $date->day);
+        $nowParis    = Carbon::now('Europe/Paris');
+
+        $totalMinutes = 0;
+        $openEntry = null;
+        $sortieMidiPlus30 = $sortieMidi->copy()->addMinutes(30);
+
+        foreach ($badgeages as $record) {
+            $t = Carbon::parse($record->heure)->setTimezone('Europe/Paris');
+            if ($record->entree_sortie) {
+                if ($openEntry === null) {
+                    // on ouvre une période
+                    $openEntry = $t;
+                } else {
+                    // entrée alors qu'une période est déjà ouverte -> fermer la précédente à la borne théorique
+                    $finTheorique = $openEntry->lt($sortieMidi) ? $sortieMidi : $sortieSoir;
+                    if ($finTheorique->gt($openEntry)) {
+                        $totalMinutes += $openEntry->diffInMinutes($finTheorique);
+                    }
+                    // nouvelle période commence
+                    $openEntry = $t;
+                }
+            } else {
+                // sortie
+                if ($openEntry !== null) {
+                    // fermer la période ouverte
+                    if ($t->gt($openEntry)) {
+                        $totalMinutes += $openEntry->diffInMinutes($t);
+                    }
+                    $openEntry = null;
+                } else {
+                    // sortie sans entrée -> compléter avec entrée théorique (matin ou midi)
+                    $start = $t->lte($sortieMidiPlus30) ? $entreeMatin : $entreeMidi;
+                    if ($t->gt($start)) {
+                        $totalMinutes += $start->diffInMinutes($t);
+                    }
+                }
+            }
+        }
+
+        // si une période est encore ouverte à la fin de la journée
+        if ($openEntry !== null) {
+            if ($date->isSameDay(Carbon::now('Europe/Paris'))) {
+                $finTheorique = $openEntry->lt($sortieMidi) ? $sortieMidi : $sortieSoir;
+                $borne = Carbon::now('Europe/Paris');
+                $heureSortie = $borne->lt($finTheorique) ? $borne : $finTheorique;
+            } else {
+                // jour passé -> borne théorique uniquement
+                $heureSortie = $openEntry->lt($sortieMidi) ? $sortieMidi : $sortieSoir;
+            }
+            if ($heureSortie->gt($openEntry)) {
+                $totalMinutes += $openEntry->diffInMinutes($heureSortie);
             }
         }
 
@@ -244,14 +300,20 @@ class BadgeageController extends Controller
     {
         $request->validate([
             'utilisateur_id' => 'required|integer|exists:utilisateurs,id',
-            'date_debut' => 'required|date',
-            'date_fin' => 'required|date|after_or_equal:date_debut',
+            'date_debut' => 'required|string',
+            'date_fin' => 'required|string',
         ]);
 
         try {
+            // convert date format (jj/mm/aaaa) -> Carbon
+            $dateDebut = Carbon::createFromFormat('d/m/Y', $request->date_debut)->startOfDay();
+            $dateFin   = Carbon::createFromFormat('d/m/Y', $request->date_fin  )->endOfDay  ();
+            
+            if ($dateFin->lt($dateDebut)) {
+                return ApiResponse::error('La date de fin doit être postérieure ou égale à la date de début', 400);
+            }
+
             $utilisateur = Utilisateur::find($request->utilisateur_id);
-            $dateDebut = Carbon::parse($request->date_debut);
-            $dateFin = Carbon::parse($request->date_fin);
 
             $badgeages = Heure::where('utilisateur_id', $request->utilisateur_id)
                 ->whereBetween('heure', [$dateDebut->startOfDay(), $dateFin->endOfDay()])
@@ -266,24 +328,20 @@ class BadgeageController extends Controller
                 return Carbon::parse($item->heure)->format('Y-m-d');
             }) as $date => $badgeagesDuJour) {
                 
-                $minutesDuJour = 0;
+                // Utilise la fonction calculerHeuresTravaillees pour chaque jour
+                $dateCarbon = Carbon::parse($date);
+                $heuresTravailleesStr = $this->calculerHeuresTravaillees($request->utilisateur_id, $dateCarbon);
                 
-                for ($i = 0; $i < $badgeagesDuJour->count(); $i += 2) {
-                    if (isset($badgeagesDuJour[$i + 1])) {
-                        $entree = Carbon::parse($badgeagesDuJour[$i]->heure);
-                        $sortie = Carbon::parse($badgeagesDuJour[$i + 1]->heure);
-                        $minutesDuJour += $entree->diffInMinutes($sortie);
-                    }
-                }
-
-                $totalMinutes += $minutesDuJour;
+                preg_match('/(\d+)h(\d+)/', $heuresTravailleesStr, $matches);
+                $heuresDuJour = isset($matches[1]) ? (int)$matches[1] : 0;
+                $minutesDuJour = isset($matches[2]) ? (int)$matches[2] : 0;
+                $minutesTotalesDuJour = ($heuresDuJour * 60) + $minutesDuJour;
                 
-                $heures = floor($minutesDuJour / 60);
-                $minutes = $minutesDuJour % 60;
+                $totalMinutes += $minutesTotalesDuJour;
 
                 $rapportParJour[] = [
                     'date' => Carbon::parse($date)->format('d/m/Y'),
-                    'heures_travaillees' => sprintf('%dh%02d', $heures, $minutes),
+                    'heures_travaillees' => $heuresTravailleesStr,
                     'nombre_badgeages' => $badgeagesDuJour->count(),
                 ];
             }

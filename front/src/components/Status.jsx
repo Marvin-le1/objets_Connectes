@@ -4,25 +4,22 @@ import Tableau from './Tableau';
 
 function Status() {
     const { callApi, loading, error } = useApi();
-
     const [users, setUsers] = useState([]);
     const [selectedId, setSelectedId] = useState('');
     const [statusRow, setStatusRow] = useState(null);
 
-    // 1) Récupérer tous les utilisateurs pour le select
     useEffect(() => {
         callApi('/utilisateurs/')
             .then((res) => {
                 const list = res?.data ?? [];
                 setUsers(list);
                 if (list.length > 0) {
-                    setSelectedId(list[0].id); // user par défaut
+                    setSelectedId(list[0].id); 
                 }
             })
             .catch((err) => console.error(err));
     }, [callApi]);
 
-    // 2) Récupérer le statut de l'utilisateur sélectionné
     useEffect(() => {
         if (!selectedId) return;
 
@@ -30,8 +27,6 @@ function Status() {
             .then((res) => {
                 const d = res?.data;
                 if (!d) return;
-
-                // On “aplatit” l’objet pour le tableau
                 setStatusRow({
                     nom: d.utilisateur?.nom,
                     prenom: d.utilisateur?.prenom,
@@ -56,23 +51,42 @@ function Status() {
     const lignes = statusRow ? [statusRow] : [];
 
     return (
-        <div>
-            <label>
-                Utilisateur :{' '}
-                <select
-                    value={selectedId}
-                    onChange={(e) => setSelectedId(e.target.value)}
-                >
-                    {users.map((u) => (
-                        <option key={u.id} value={u.id}>
-                            {u.nom} {u.prenom}
-                        </option>
-                    ))}
-                </select>
-            </label>
+        <div style={{ padding: '1.5rem' }}>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+                Statut des utilisateurs
+            </h1>
 
-            {loading && <p>Chargement...</p>}
-            {error && <p>Erreur : {error.message}</p>}
+            <div
+                style={{
+                    marginBottom: '1rem',
+                    display: 'flex',
+                    gap: '1rem',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                }}
+            >
+                <label>
+                    Utilisateur :{' '}
+                    <select
+                        value={selectedId}
+                        onChange={(e) => setSelectedId(e.target.value)}
+                    >
+                        {users.map((u) => (
+                            <option key={u.id} value={u.id}>
+                                {u.prenom} {u.nom}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+
+                {loading && <p style={{ margin: 0 }}>Chargement...</p>}
+
+                {error && (
+                    <p style={{ margin: 0, color: 'red' }}>
+                        Erreur : {error?.message || 'Une erreur est survenue.'}
+                    </p>
+                )}
+            </div>
 
             <Tableau colonnes={colonnes} lignes={lignes} />
         </div>

@@ -51,48 +51,65 @@ function FormHorraire({ onSubmit }) {
     };
 
     return (
-        <form onSubmit={handleSubmit}>
-            <label>
-                ID utilisateur :
-                <input
-                    type="number"
-                    name="utilisateur_id"
-                    value={formData.utilisateur_id}
-                    onChange={handleChange}
-                    required
-                />
-            </label>
-            <br />
-            <label>
-                Type :
-                <select
-                    name="entree_sortie"
-                    value={formData.entree_sortie}
-                    onChange={handleChange}
-                    required
-                >
-                    <option value="1">Entrée</option>
-                    <option value="0">Sortie</option>
-                </select>
-            </label>
-            <br />
-            <label>
-                Heure (texte, ex: 2025-11-16 07:00:00) :
-                <input
-                    type="text"
-                    name="heure"
-                    value={formData.heure}
-                    onChange={handleChange}
-                    placeholder="YYYY-MM-DD HH:MM:SS"
-                    required
-                />
-            </label>
-            <br />
-            <button type="submit" disabled={loading}>
-                {loading ? 'Envoi...' : 'Soumettre'}
-            </button>
-            {error && <p>Erreur lors de l'envoi</p>}
-        </form>
+        <div style={{ padding: '1.5rem' }}>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+                Ajouter une heure
+            </h1>
+
+            <form
+                onSubmit={handleSubmit}
+                style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1rem',
+                    maxWidth: '400px',
+                }}
+            >
+                <label style={{ display: 'flex', flexDirection: 'column' }}>
+                    ID utilisateur :
+                    <input
+                        type="number"
+                        name="utilisateur_id"
+                        value={formData.utilisateur_id}
+                        onChange={handleChange}
+                        required
+                    />
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column' }}>
+                    Type :
+                    <select
+                        name="entree_sortie"
+                        value={formData.entree_sortie}
+                        onChange={handleChange}
+                        required
+                    >
+                        <option value="1">Entrée</option>
+                        <option value="0">Sortie</option>
+                    </select>
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column' }}>
+                    Heure :
+                    <input
+                        type="text"
+                        name="heure"
+                        value={formData.heure}
+                        onChange={handleChange}
+                        placeholder="YYYY-MM-DD HH:MM:SS"
+                        required
+                    />
+                </label>
+
+                <button type="submit" disabled={loading}>
+                    {loading ? 'Envoi...' : 'Soumettre'}
+                </button>
+
+                {error && (
+                    <p style={{ color: 'red', margin: 0 }}>Erreur lors de l'envoi</p>
+                )}
+            </form>
+        </div>
     );
 }
 
